@@ -1,0 +1,161 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
+  theme: {
+    extend: {
+      fontFamily: {
+        rubik: ["Rubik-Regular", "sans-serif"],
+        "rubik-bold": ["Rubik-Bold", "sans-serif"],
+        "rubik-extrabold": ["Rubik-ExtraBold", "sans-serif"],
+        "rubik-medium": ["Rubik-Medium", "sans-serif"],
+        "rubik-semibold": ["Rubik-SemiBold", "sans-serif"],
+        "rubik-light": ["Rubik-Light", "sans-serif"],
+      },
+      colors: {
+        "primary": {
+          "50": "#F0F5FF",
+          "100": "#D6E4FF",
+          "200": "#ADC8FF",
+          "300": "#84A9FF",
+          "400": "#5C8AFF",
+          "500": "#396EFF", // Base
+          "600": "#2D59D9",
+          "700": "#2345B3",
+          "800": "#1A338C",
+          "900": "#122466",
+          "950": "#0A1640"
+        },
+        red: {
+          50: "#FEF2F2",
+          100: "#FDE4E3",
+          200: "#FDCDCB",
+          300: "#FAAAA7",
+          400: "#F47A75",
+          500: "#EA4F49",
+          600: "#D83731",
+          700: "#B52520",
+          800: "#95231F",
+          900: "#7C2320",
+          950: "#430E0C",
+        },
+        green : {
+          50: "#F3FAF4",
+          100: "#E4F4E7",
+          200:" #CAE8CF",
+          300:" #A0D5AB",
+          400: "#6FB97F",
+          500: "#4AAD5C",
+          600: "#3F8E50",
+          700: "#2F663C",
+          800: "#2A5133",
+          900: "#24432B",
+          950: "#0F2415",
+        },
+        black: {
+          50: "#F7F7F7",
+          100: "#E1E3E5",
+          200: "#C3C6CB",
+          300: "#9EA2A9",
+          400: "#797E86",
+          500: "#5F646D",
+          600: "#4B4F58",
+          700: "#3E4046",
+          800: "#35373B",
+          900: "#1B1D21",
+          950: "#0E0F12",
+        },
+
+        grey: {
+          50: "#F8FAFC",
+          100: "#F1F5F9",
+          200: "#E2E8F0",
+          300: "#CBD5E1",
+          400: "#94A3B8",
+          500: "#64748B",
+          600: "#475569",
+          700: "#334155",
+          800: "#1E293B",
+          900: "#0F172A",
+          950: "#020617",
+        },
+
+        blue: {
+          25: "#eaeafb",
+          50: "#EFFAFF",
+          100: "#DEF3FF",
+          200: "#B6EAFF",
+          300: "#75DBFF",
+          400: "#2CCAFF",
+          500: "#00ABEB",
+          600: "#0090D4",
+          700: "#0073AB",
+          800: "#00608D",
+          900: "#065074",
+          950: "#04334D",
+        },
+
+        yellow: {
+          50: "#FFFBEB",
+          100: "#FDF4C8",
+          200: "#FBE68C",
+          300: "#FAD44F",
+          400: "#F8C027",
+          500: "#F29F0E",
+          600: "#D67909",
+          700: "#B2550B",
+          800: "#904110",
+          900: "#773610",
+          950: "#441B04",
+        }
+      },
+      boxShadow: {
+        primaryButton: '0px 1px 2px 0px rgba(16, 24, 40, 0.05)',
+        textField: '0px 1px 2px 0px rgba(16, 24, 40, 0.05)',
+        featureCard:
+            '0px 4px 6px -2px rgba(16, 24, 40, 0.03), 0px 12px 16px -4px rgba(16, 24, 40, 0.08)',
+        personCard: '5px 5px',
+        table: ' 0px 1px 2px 0px rgba(16, 24, 40, 0.06)',
+      },
+      screens: {
+        xmd: '900px',
+        xsm: '435px',
+        '2mxl': '1380px',
+        '3xl': '1800px',
+      },
+      width: {
+        'screen-md': '768px',
+      },
+      padding: {
+        'custom-3': '0.75rem',
+        'custom-5': '1.25rem',
+        'custom-10': '2.5rem',
+        'custom-14': '3.5rem',
+        'custom-16': '4rem',
+        'custom-20': '5rem',
+      },
+      keyframes: {
+        'fade-scale': {
+          '0%': {
+            opacity: '0',
+            transform: 'scale(0.8)',
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'scale(1)',
+          },
+        },
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-10px)' },
+          '20%, 40%, 60%, 80%': { transform: 'translateX(10px)' },
+        },
+      },
+      animation: {
+        'fade-scale': 'fade-scale 0.7s ease-out forwards',
+        shake: 'shake 0.7s ease-in-out',
+      },
+    },
+  },
+  plugins: [],
+}
