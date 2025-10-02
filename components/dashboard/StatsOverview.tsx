@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text } from "react-native";
-import { ClipboardList, Droplets, Milk, DollarSign } from "lucide-react-native";
+import {ClipboardList, Droplets, Milk, DollarSign, IndianRupee} from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {Skeleton} from "@/components/Skeleton";
 interface StatsOverviewProps {
@@ -38,8 +38,8 @@ export default function StatsOverview({ stats, isLoading }: StatsOverviewProps) 
         },
         {
             title: "Monthly Expenses",
-            value: `$${stats.totalExpensesThisMonth}`,
-            icon: DollarSign,
+            value: `₹${stats.totalExpensesThisMonth}`,
+            icon: IndianRupee,
             gradientColors: ["#f97316", "#ef4444"], // orange-red gradient
             bgColor: "bg-orange-100",
         },
@@ -62,10 +62,10 @@ export default function StatsOverview({ stats, isLoading }: StatsOverviewProps) 
                             />
                             <View className="flex flex-row justify-between items-start">
                                 <View>
-                                    <Text className="text-gray-600 text-sm mb-2 font-medium">
+                                    <Text className="font-rubik text-black-600 text-lg mb-2">
                                         {stat.title}
                                     </Text>
-                                    <Text className="text-gray-800 font-bold text-2xl md:text-3xl">
+                                    <Text className="text-gray-800 font-rubik-semibold text-2xl">
                                         {isLoading ? <Skeleton className="h-8 w-20" /> : stat.value}
                                     </Text>
                                 </View>
@@ -73,8 +73,7 @@ export default function StatsOverview({ stats, isLoading }: StatsOverviewProps) 
                                     className={`p-3 rounded-xl ${stat.bgColor} justify-center items-center`}
                                 >
                                     <Icon
-                                        size={24}
-                                        // Using gradient for icon requires masking or SVG library; simplified here
+                                        size={40}
                                     />
                                 </View>
                             </View>

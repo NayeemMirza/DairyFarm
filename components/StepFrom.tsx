@@ -105,10 +105,12 @@ export default function StepForm({ step, formData, setFormData, onValidationChan
 
 // Toggle Dry
     const toggleDry = () => {
-        setFormData(prev => ({
-            ...prev,
-            dry_cow: !prev.isDry,
-        }));
+        setFormData(prev => {
+            return {
+                ...prev,
+                isDry: !prev.isDry,
+            };
+        });
     };
     const toggleHasCalf = () => {
         setFormData(prev => ({

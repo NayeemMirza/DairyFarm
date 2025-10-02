@@ -134,7 +134,7 @@ const AddAnimal = () => {
                         className="h-full"
                         showsVerticalScrollIndicator={false}
                     >
-                            <Stepper steps={steps} currentStep={currentStep} />
+                        <Stepper steps={steps} currentStep={currentStep} />
                         <StepForm
                             step={currentStep}
                             formData={animalData}

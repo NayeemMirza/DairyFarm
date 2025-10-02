@@ -1,16 +1,17 @@
 import React from "react";
 import { View, Text, FlatList, TouchableOpacity } from "react-native";
 import { format } from "date-fns";
-import { Edit, DollarSign, IndianRupee} from "lucide-react-native";
+import {Edit, DollarSign, IndianRupee, Trash} from "lucide-react-native";
 import {ExpenseType} from "@/types/expance";
 
 interface ExpenseListProps {
     expenses: ExpenseType[];
     isLoading: boolean;
     onEdit: (expense: ExpenseType) => void;
+    onDelete?: (expenseId: string) => void;
 }
 
-export default function ExpenseList({ expenses, isLoading, onEdit }: ExpenseListProps) {
+export default function ExpenseList({ expenses, isLoading, onEdit, onDelete }: ExpenseListProps) {
     const categoryColors: Record<string, string> = {
         Feed: "bg-green-100 text-green-800",
         Medicine: "bg-red-100 text-red-800",
@@ -58,13 +59,24 @@ export default function ExpenseList({ expenses, isLoading, onEdit }: ExpenseList
                             >
                                 {item.category}
                             </Text>
-                            <TouchableOpacity
-                                className="flex flex-row gap-2 bg-primary-500 rounded-full px-5 py-2 items-center"
-                                onPress={() => onEdit(item)}
-                            >
-                                <Edit size={16} color='#fff' />
-                                <Text className="text-sm text-white font-rubik-medium">Edit</Text>
-                            </TouchableOpacity>
+                            <View className='flex gap-2 flex-row'>
+                                <TouchableOpacity
+                                    className="flex flex-row gap-2 justify-center bg-primary-500 rounded-full w-12 h-12 px-4 py-2 items-center"
+                                    onPress={() => onEdit(item)}
+                                >
+                                    <Edit size={22} color='#fff' />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    className="flex flex-row gap-2 justify-center  bg-red-100 rounded-full w-12 h-12 px-4 py-2 items-center text-red-500"
+                                    onPress={() => {
+                                        if (item.id) {
+                                            onDelete?.(item.id);
+                                        }
+                                    }}
+                                >
+                                    <Trash size={22} color='#ea4f49' />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                         <View className="flex-row items-center mb-4 flex justify-between">
                             <View className="flex flex-row justify-between items-center">

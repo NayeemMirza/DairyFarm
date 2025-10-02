@@ -18,43 +18,49 @@ export interface WordPressExpenseObject {
         rendered: string;
         protected: boolean;
     };
+    author: number;
     featured_media: number;
     template: string;
+    meta: {
+        _acf_changed: boolean;
+        inline_featured_image: boolean;
+    };
     class_list: string[];
-    acf: ExpenseACFFields;
-    _links: WordPressLinks;
-}
-
-export interface ExpenseACFFields {
-    date: string; // "September 9, 2025" - you might want to change format to YYYY-MM-DD in WordPress
-    category: "Feed" | "Medicine" | "Equipment" | "Labor" | "Utilities" | "Maintenance" | "Transport" | "Other";
-    description: string;
-    amount: string; // WordPress returns this as string "1500.00"
-    vendor?: string;
-    payment_method?: "Cash" | "Bank Transfer" | "Credit Card" | "Check";
-    receipt_number?: string;
-    notes?: string;
-}
-
-export interface WordPressLinks {
-    self: Array<{
-        href: string;
-        targetHints?: {
-            allow: string[];
-        };
-    }>;
-    collection: Array<{
-        href: string;
-    }>;
-    about: Array<{
-        href: string;
-    }>;
-    "wp:attachment": Array<{
-        href: string;
-    }>;
-    curies: Array<{
-        name: string;
-        href: string;
-        templated: boolean;
-    }>;
+    acf: {
+        date: string;
+        category: string;
+        description: string;
+        amount: string; // stored as string in WP ACF
+        vendor: string;
+        payment_method: string;
+        receipt_number: string;
+        notes: string;
+    };
+    author_name: string;
+    _links: {
+        self: {
+            href: string;
+            targetHints?: {
+                allow: string[];
+            };
+        }[];
+        collection: {
+            href: string;
+        }[];
+        about: {
+            href: string;
+        }[];
+        author: {
+            embeddable: boolean;
+            href: string;
+        }[];
+        "wp:attachment": {
+            href: string;
+        }[];
+        curies: {
+            name: string;
+            href: string;
+            templated: boolean;
+        }[];
+    };
 }

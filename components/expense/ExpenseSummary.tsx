@@ -42,15 +42,13 @@ export default function ExpenseSummary({ expenses, isLoading }: ExpenseSummaryPr
             <View className="">
 
             {/* Total Expenses Card */}
-            <View className="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-6 flex-1">
+            <View className="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl px-0 p-6 flex-1">
                 <View className="flex-row items-center mb-2">
-                    <IndianRupee size={20} color="red" />
                     <Text className="ml-2 text-lg font-bold">Total Expenses for current month</Text>
                 </View>
                 <Text className="text-4xl font-bold ">
                     <IndianRupee />{totalExpenses.toFixed(2)}
                 </Text>
-                <Text className="mt-1">For the selected period</Text>
             </View>
 
             {/* Category Breakdown Card - Only show if we have expenses */}
@@ -67,9 +65,9 @@ export default function ExpenseSummary({ expenses, isLoading }: ExpenseSummaryPr
                                             className="w-3 h-3 rounded-full mr-2"
                                             style={{ backgroundColor: COLORS[category] || "#9ca3af" }}
                                         />
-                                        <Text className="text-gray-700">{category}</Text>
+                                        <Text className="text-gray-700 font-rubik text-lg">{category}</Text>
                                     </View>
-                                    <Text className="font-semibold">${amount.toFixed(2)}</Text>
+                                    <Text className="font-rubik-semibold text-black-700 text-lg">{amount.toFixed(2)}</Text>
                                 </View>
                             ))
                         }

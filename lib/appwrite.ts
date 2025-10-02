@@ -11,16 +11,19 @@ import {
 import {ExtendedNewAnimalFormData, Picture, PictureSizes} from "@/types/updatedTypes";
 import {addMilkRecord} from "@/utils/milkRecordsUtils";
 import {WordPressExpenseObject} from "@/types/expanceTypes";
+import {CreateExpensePayload, ExpenseType} from "@/types/expance";
 
 const baseUrl = Constants.expoConfig?.extra?.API_BASE_URL;
 const apiNamespaceV1 = Constants.expoConfig?.extra?.API_NAMESPACE_V1;
 const apiNamespaceV2 = Constants.expoConfig?.extra?.API_NAMESPACE_V2;
+interface Stats {
+    totalAnimals: number;
+    lactatingAnimals: number;
+    totalMilkThisMonth: number;
+    totalExpensesThisMonth: number;
+}
 
-
-export async function loginUser({username, password}: {
-    username: string;
-    password: string;
-}): Promise<LoginResponse> {
+export async function loginUser({username, password}: { username: string; password: string; }): Promise<LoginResponse> {
     const url = `${baseUrl}${apiNamespaceV1}/token`;
     const response = await fetch(url, {
         method: "POST",
@@ -65,9 +68,6 @@ export async function logoutUser(): Promise<void> {
     }
 }
 
-
-
-
 export async function getCurrentUser(): Promise<CurrentUserResponse | null> {
     try {
         const token = await getToken();
@@ -81,6 +81,7 @@ export async function getCurrentUser(): Promise<CurrentUserResponse | null> {
             },
         });
 
+
         if (!response.ok) return null;
 
         const data = await response.json();
@@ -93,6 +94,7 @@ export async function getCurrentUser(): Promise<CurrentUserResponse | null> {
             email: data.email,
             avatar: data.avatar_urls?.["96"] || "",
         };
+
     } catch (error) {
         console.error("Failed to get current user:", error);
         return null;
@@ -101,9 +103,11 @@ export async function getCurrentUser(): Promise<CurrentUserResponse | null> {
 
 export async function getAnimals({ filter, query, limit, }: { filter?: string; query?: string; limit?: number; } = {}): Promise<Animal[]> {
     try {
+        const currentUser = await getCurrentUser(); // get logged-in user
+        if (!currentUser) return [];
+
         const url = new URL(`${baseUrl}${apiNamespaceV2}/animals`);
 
-        // Pass category filter to API if not "All"
         if (filter && filter !== "All") {
             url.searchParams.append("filter", filter);
         }
@@ -125,7 +129,10 @@ export async function getAnimals({ filter, query, limit, }: { filter?: string; q
 
         let animals: Animal[] = await response.json();
 
-        // ✅ Extra filtering by query (name)
+        // Filter by logged-in user
+        animals = animals.filter((a) => a.author === Number(currentUser.$id));
+
+        // Extra filtering by query (name)
         if (query && query.trim() !== "") {
             const lowerQuery = query.toLowerCase();
             animals = animals.filter(
@@ -135,10 +142,9 @@ export async function getAnimals({ filter, query, limit, }: { filter?: string; q
             );
         }
 
-        // ✅ Extra filtering by special categories if API doesn't support it
+        // Extra filtering by special categories
         if (filter && filter !== "All") {
             const lowerFilter = filter.toLowerCase();
-
             animals = animals.filter((a) => {
                 switch (filter) {
                     case "Pregnant":
@@ -152,7 +158,6 @@ export async function getAnimals({ filter, query, limit, }: { filter?: string; q
                     case "LowMilk":
                         return Number(a.acf?.milking_capacity) <= 10;
                     default:
-                        // Check type or breeds for matching other categories like "Buffaloes"
                         return (
                             a.acf?.animal_type?.toLowerCase() === lowerFilter ||
                             a.acf?.breeds?.toLowerCase() === lowerFilter
@@ -168,9 +173,6 @@ export async function getAnimals({ filter, query, limit, }: { filter?: string; q
     }
 }
 
-
-
-// Fetch latest animals
 export async function getLatestAnimals(params?: { limit?: number }) {
     const limit = params?.limit ?? 5;
     const animals = await getAnimals({ filter: "All" });
@@ -183,8 +185,6 @@ export async function getLatestAnimals(params?: { limit?: number }) {
 
     return sortedAnimals.slice(0, limit);
 }
-
-
 
 export async function addNewAnimal(animalInfo: ExtendedNewAnimalFormData) {
     try {
@@ -324,8 +324,6 @@ export async function addNewAnimal(animalInfo: ExtendedNewAnimalFormData) {
     }
 }
 
-
-
 export async function getAnimalById(params?: { id: string }) {
     const id = params?.id;
     if (!id) throw new Error("No animal ID provided");
@@ -355,7 +353,6 @@ export async function getAnimalById(params?: { id: string }) {
         throw new Error(error.message || "An unexpected error occurred");
     }
 }
-
 
 export async function updateAnimal(id: number, animalInfo: ExtendedNewAnimalFormData) {
     if (!id) throw new Error("No animal ID provided");
@@ -543,7 +540,34 @@ export async function updateAnimal(id: number, animalInfo: ExtendedNewAnimalForm
     }
 }
 
+export async function deleteAnimal(id: number) {
+    if (!id) throw new Error("No animal ID provided");
 
+    try {
+        const token = await getToken();
+        if (!token) throw new Error("No authentication token found");
+
+        const response = await fetch(`${baseUrl}${apiNamespaceV2}/animals/${id}`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData?.message || "Failed to delete animal");
+        }
+
+        // WordPress usually returns deleted post object or {deleted: true, previous: {...}}
+        const result = await response.json();
+        return result;
+    } catch (error: any) {
+        console.error("Error deleting animal:", error);
+        throw new Error(error.message || "An unexpected error occurred");
+    }
+}
 
 export async function addMilkProduction( animalId: number, milkData: MilkingRecord) {
     if (!animalId) throw new Error("No animal ID provided");
@@ -552,7 +576,6 @@ export async function addMilkProduction( animalId: number, milkData: MilkingReco
         const token = await getToken();
         if (!token) throw new Error("No authentication token found");
 
-        // Format date into DD/MM/YYYY
         const formatDateForWordPress = (dateString: string | undefined): string => {
             if (!dateString) return "";
             try {
@@ -629,7 +652,6 @@ export async function addMilkProduction( animalId: number, milkData: MilkingReco
         throw new Error(error.message || "An unexpected error occurred");
     }
 }
-
 
 export async function addVaccination(animalId: number, vaccination: Vaccination) {
     if (!animalId) throw new Error("No animal ID provided");
@@ -717,19 +739,126 @@ export async function addVaccination(animalId: number, vaccination: Vaccination)
     }
 }
 
+export function mapWordPressExpenseToApp(e: any): ExpenseType {
+    const validCategories = ["Feed", "Medicine", "Equipment", "Labor", "Utilities", "Maintenance", "Transport", "Other"] as const;
+
+    const category = validCategories.includes(e.acf?.category)
+        ? (e.acf?.category as ExpenseType["category"])
+        : "Other";
+
+    // Parse the date, fallback to raw date string
+    let parsedDate = e.date;
+    if (e.acf?.date) {
+        try {
+            parsedDate = new Date(e.acf.date).toISOString().split("T")[0]; // yyyy-MM-dd
+        } catch {}
+    }
+
+    return {
+        id: e.id.toString(),
+        date: parsedDate,
+        category,
+        description: e.acf?.description || "",
+        amount: Number(e.acf?.amount || 0),
+        vendor: e.acf?.vendor || "",
+        payment_method: e.acf?.payment_method || "",
+        receipt_number: e.acf?.receipt_number || "",
+        notes: e.acf?.notes || "",
+    };
+}
+
+export async function getUserStats(): Promise<Stats> {
+    try {
+        const currentUser = await getCurrentUser();
+        if (!currentUser) return {
+            totalAnimals: 0,
+            lactatingAnimals: 0,
+            totalMilkThisMonth: 0,
+            totalExpensesThisMonth: 0,
+        };
+
+        const animals = await getAnimals();
+
+
+        const totalAnimals = animals.length;
+
+        const lactatingAnimals = animals.filter((a) => {
+            const capacity = Number(a.acf?.milking_capacity) || 0;
+            const isDry = String(a.acf?.dry_cow) === "true"; // normalize
+            return capacity > 0 && !isDry;
+        }).length;
+
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1; // JS month is 0-indexed
+        const currentYear = now.getFullYear();
+
+        const totalMilkThisMonth = animals.reduce((sum, a) => {
+            if (!a.acf?.milking_records_json) return sum;
+            let records;
+            try {
+                records = JSON.parse(a.acf.milking_records_json);
+            } catch {
+                return sum;
+            }
+            const monthlySum = records.reduce((s: number, r: any) => {
+                if (!r.date) return s;
+                const [day, month, year] = r.date.split("/").map(Number);
+                const date = new Date(year, month - 1, day);
+                if (
+                    date.getMonth() + 1 === currentMonth &&
+                    date.getFullYear() === currentYear
+                ) {
+                    return s + Number(r.yield || 0);
+                }
+                return s;
+            }, 0);
+
+            return sum + monthlySum;
+        }, 0);
+
+        const allExpenses = await getExpenses();
+        const totalExpensesThisMonth = allExpenses
+            .filter(e => Number(e.author) === Number(currentUser.$id))
+            .reduce((sum, e) => {
+                const date = new Date(e.date);
+                if (date.getMonth() + 1 === currentMonth && date.getFullYear() === currentYear) {
+                    return sum + Number(e.acf?.amount || 0);
+                }
+                return sum;
+            }, 0);
+
+
+        return {
+            totalAnimals,
+            lactatingAnimals,
+            totalMilkThisMonth,
+            totalExpensesThisMonth,
+        };
+    } catch (error) {
+        console.error("Failed to fetch user stats:", error);
+        return {
+            totalAnimals: 0,
+            lactatingAnimals: 0,
+            totalMilkThisMonth: 0,
+            totalExpensesThisMonth: 0,
+        };
+    }
+}
 
 export async function getExpenses(): Promise<WordPressExpenseObject[]> {
     try {
+        const currentUser = await getCurrentUser();
+        if (!currentUser) return [];
+
         const token = await getToken();
         if (!token) throw new Error("No authentication token found");
-
 
         const url = new URL(`${baseUrl}${apiNamespaceV2}/expenses`);
 
         const response = await fetch(url.toString(), {
-            method: 'GET',
+            method: "GET",
             headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
         });
@@ -739,10 +868,124 @@ export async function getExpenses(): Promise<WordPressExpenseObject[]> {
         }
 
         const data: WordPressExpenseObject[] = await response.json();
-        return data;
 
-    } catch (error) {
-        console.error("Error fetching expenses:", error);
+        // Filter only current user's expenses
+        const userExpenses = data.filter(
+            (expense) => Number(expense.author) === Number(currentUser.$id)
+        );
+
+
+        return userExpenses;
+
+    } catch (error: any) {
+        console.error("Error fetching user expenses:", error);
+        throw new Error(error.message || "An unexpected error occurred");
+    }
+}
+
+export async function addExpense(payload: CreateExpensePayload): Promise<WordPressExpenseObject> {
+    try {
+        const token = await getToken();
+        if (!token) throw new Error("No authentication token found");
+
+        const url = `${baseUrl}${apiNamespaceV2}/expenses`;
+
+        const body = {
+            title: payload.description || "Expense",
+            status: "publish",
+            acf: {
+                date: payload.date,
+                category: payload.category,
+                description: payload.description,
+                amount: payload.amount.toString(),
+                vendor: payload.vendor || "",
+                payment_method: payload.payment_method || "",
+                receipt_number: payload.receipt_number || "",
+                notes: payload.notes || "",
+            },
+        };
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(body),
+        });
+
+        if (!response.ok) throw new Error(`Failed to add expense: ${response.status}`);
+
+        const data: WordPressExpenseObject = await response.json();
+        return data;
+    } catch (error: any) {
+        console.error("Error adding expense:", error);
+        throw new Error(error.message || "Unexpected error adding expense");
+    }
+}
+
+export async function updateExpense(expense: ExpenseType) {
+    const token = await getToken(); // JWT or App Password
+    if (!token) throw new Error("No authentication token found");
+
+    if (!expense.id) throw new Error("Expense ID is required for update");
+
+    const url = `${baseUrl}${apiNamespaceV2}/expenses/${expense.id}`;
+
+    const body = {
+        title: expense.description || "Expense",
+        status: "publish",
+        acf: {
+            date: expense.date,
+            category: expense.category,
+            description: expense.description,
+            amount: expense.amount.toString(),
+            vendor: expense.vendor,
+            payment_method: expense.payment_method,
+            receipt_number: expense.receipt_number,
+            notes: expense.notes,
+        }
+        // author field usually does not need to be updated
+    };
+
+    const res = await fetch(url, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to update expense: ${res.status}`);
+    }
+
+    return await res.json();
+}
+
+export async function deleteExpense(expenseId: string) {
+    try {
+        const token = await getToken();
+        if (!token) throw new Error("No authentication token found");
+
+        const url = `${baseUrl}${apiNamespaceV2}/expenses/${expenseId}`;
+
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to delete expense. Status: ${response.status}`);
+        }
+
+        return true; // Successfully deleted
+    } catch (error: any) {
+        console.error("Error deleting expense:", error);
         throw new Error(error.message || "An unexpected error occurred");
     }
 }

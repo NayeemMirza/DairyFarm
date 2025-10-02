@@ -14,7 +14,7 @@ const addOptions: AddOption[] = [
     { label: "Add New Animal", icon: "🐄", route: "/animal/add-animal", color: "#FDE68A" },
     { label: "Add Milk Record", icon: "🥛", route: "/animal/add-milk", color: "#A7F3D0" },
     { label: "Add Vaccination", icon: "💊", route: "/animal/add-vaccinations", color: "#BFDBFE" },
-    { label: "Add Expense", icon: "💰", route: "/add-expense", color: "#FCA5A5" },
+    { label: "Add Expense", icon: "💰", route: "/animal/add-expenses", color: "#FCA5A5" },
 ];
 
 export default function AddHub() {

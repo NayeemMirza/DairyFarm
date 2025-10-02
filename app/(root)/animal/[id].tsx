@@ -4,13 +4,13 @@ import {
     Text,
     TouchableOpacity,
     View,
-    Dimensions, Modal, FlatList, SafeAreaView,
+    Dimensions, Modal, FlatList, SafeAreaView, Alert,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import icons from "@/constants/icons";
 import images from "@/constants/images";
 import {useApi} from "@/lib/useApi";
-import {getAnimalById} from "@/lib/appwrite";
+import {deleteAnimal, getAnimalById} from "@/lib/appwrite";
 import EditIcon from "@/assets/svg-icons/editIcon";
 import {
     formatDate, formatGallery,
@@ -20,6 +20,7 @@ import {
 } from "@/utils/utils";
 import {useEffect, useState} from "react";
 import {GalleryImage, MilkingRecord, Vaccination} from "@/types/types";
+import { Trash } from "lucide-react-native";
 
 const Animal = () => {
     const { id } = useLocalSearchParams<{ id?: string }>();
@@ -30,6 +31,7 @@ const Animal = () => {
     const [vaccinationsRecord, setVaccinationsRecord] = useState<Vaccination[]>([]);
     const [galleryPic, setGalleryPic] = useState<GalleryImage[]>([]);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const { data: animal } = useApi({
         fn: getAnimalById,
         params: {
@@ -105,6 +107,34 @@ const Animal = () => {
         const dateB = b[0]?.date ? new Date(b[0].date).getTime() : 0;
         return dateB - dateA; // For descending order (newest first)
     });
+
+    const handleDeleteAnimal = async (animalId: number) => {
+        Alert.alert(
+            "Delete Animal",
+            "Are you sure you want to delete this animal?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setIsLoading(true);
+                            await deleteAnimal(animalId);
+                            Alert.alert("Success", "Animal deleted successfully");
+                            router.back(); // Go back to animal list
+                        } catch (err: any) {
+                            Alert.alert("Error", err.message || "Failed to delete animal");
+                        } finally {
+                            setIsLoading(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+
     return (
         <SafeAreaView className="bg-primary-500">
             <View>
@@ -170,7 +200,7 @@ const Animal = () => {
                         </View>
                         <View className="flex flex-row gap-3 items-center">
                             <TouchableOpacity
-                                className="flex flex-row gap-2 bg-primary-500 rounded-full px-5 py-2 items-center"
+                                className="flex flex-row gap-2 bg-primary-500 rounded-full px-4 py-2 items-center"
                                 onPress={() => handleAddMilkRecord(animal)}
                                 >
                                 <Text className="text-base text-white font-rubik-medium">
@@ -178,13 +208,14 @@ const Animal = () => {
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                className="flex flex-row gap-2 bg-primary-500 rounded-full px-5 py-2 items-center"
+                                className="flex flex-row gap-2 bg-primary-500 rounded-full w-16 h-16 px-4 py-2 items-center"
                                 onPress={() => handleEdite(animal)}
                             >
-                                <EditIcon color="#fff" size={14} />
-                                <Text className="text-base text-white font-rubik-medium">
-                                    Edit
-                                </Text>
+                                <EditIcon color="#fff" size={16} />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleDeleteAnimal(animal.id)}
+                                              className="flex flex-row gap-2 bg-red-100 rounded-full w-16 h-16 px-4 py-2 items-center text-red-500">
+                                <Trash size={16} color="#ea4f49" />
                             </TouchableOpacity>
                         </View>
                     </View>

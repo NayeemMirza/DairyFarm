@@ -52,6 +52,7 @@ export interface Animal {
         rendered: string;
         protected: boolean;
     };
+    author: number;
     featured_media: number;
     template: string;
     meta: Record<string, any>;

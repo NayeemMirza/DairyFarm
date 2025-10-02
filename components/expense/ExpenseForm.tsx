@@ -6,7 +6,7 @@ import { Picker } from "@react-native-picker/picker";
 interface ExpenseFormProps {
     expense: ExpenseType | null;
     onSubmit: (expense: ExpenseType) => void;
-    onCancel: () => void;
+    onCancel?: () => void;
     categories: string[];
     paymentMethods: string[];
 }

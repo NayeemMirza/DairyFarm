@@ -12,17 +12,24 @@ import {
     Modal
 } from "react-native";
 import { Plus, Download } from "lucide-react-native";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 
 import ExpenseSummary from "@/components/expense/ExpenseSummary";
 import ExpenseFilters from "@/components/expense/ExpenseFilters";
 import ExpenseForm from "@/components/expense/ExpenseForm";
 import ExpenseList from "@/components/expense/ExpenseList";
 import { ExpenseType, ExpenseSchema } from "@/types/expance";
-import {router} from "expo-router";
+import {router, useLocalSearchParams} from "expo-router";
 import icons from "@/constants/icons";
 import {useApi} from "@/lib/useApi";
-import {getAnimals, getExpenses} from "@/lib/appwrite";
+import {
+    addExpense,
+    deleteExpense,
+    getAnimals,
+    getExpenses,
+    mapWordPressExpenseToApp,
+    updateExpense
+} from "@/lib/appwrite";
 
 export default function Expenses() {
     const [expenses, setExpenses] = useState<ExpenseType[]>([]);
@@ -33,7 +40,7 @@ export default function Expenses() {
         category: "all",
         month: format(new Date(), "yyyy-MM"),
     });
-
+    const params = useLocalSearchParams<{ filter?: string; query?: string }>();
     const {
         data: expensesList,
         refetch,
@@ -55,27 +62,86 @@ export default function Expenses() {
     }, [params.filter, params.query]);
 
     useEffect(() => {
-        setIsLoading(true);
-        setTimeout(() => {
-            setExpenses([
-                { id: "1", date: "2025-09-01", category: "Feed", description: "Chicken feed purchase", amount: 150, vendor: "Local supplier", payment_method: "Cash", receipt_number: "R-001", notes: "For September" },
-                { id: "2", date: "2025-09-03", category: "Medicine", description: "Vaccine purchase", amount: 80, vendor: "Vet Shop", payment_method: "Credit Card", receipt_number: "R-002", notes: "" },
-            ]);
-            setIsLoading(false);
-        }, 1000);
-    }, []);
+        if (expensesList) {
+            setIsLoading(true);
 
-    const handleSubmit = (expenseData: ExpenseType) => {
-        if (editingExpense) {
-            setExpenses(prev => prev.map(e => e.id === editingExpense.id ? { ...expenseData, id: e.id } : e));
-        } else {
-            const newId = expenses.length > 0
-                ? (Math.max(...expenses.map(e => Number(e.id))) + 1).toString()
-                : "1";
-            setExpenses(prev => [{ ...expenseData, id: newId }, ...prev]);
+            const validCategories = ["Feed", "Medicine", "Equipment", "Labor", "Utilities", "Maintenance", "Transport", "Other"] as const;
+
+            const mappedExpenses: any[] = expensesList.map((e) => {
+                let parsedDate: string;
+
+                // Parse ACF date
+                if (e.acf?.date) {
+                    try {
+                        const cleanedDate = e.acf.date.trim();
+                        parsedDate = format(parse(cleanedDate, "MMMM d, yyyy", new Date()), "yyyy-MM-dd");
+                    } catch {
+                        parsedDate = e.date;
+                    }
+                } else {
+                    parsedDate = e.date;
+                }
+
+                // Validate category
+                const category = validCategories.includes(e.acf?.category as any)
+                    ? (e.acf?.category as ExpenseType["category"])
+                    : "Other";
+
+                return {
+                    id: e.id.toString(),
+                    date: parsedDate,
+                    category,
+                    description: e.acf?.description || "",
+                    amount: Number(e.acf?.amount || 0),
+                    vendor: e.acf?.vendor || "",
+                    payment_method: e.acf?.payment_method || "",
+                    receipt_number: e.acf?.receipt_number || "",
+                    notes: e.acf?.notes || "",
+                };
+            });
+
+            setExpenses(mappedExpenses);
+            setIsLoading(false);
         }
-        setShowForm(false);
-        setEditingExpense(null);
+    }, [expensesList]);
+
+    const handleSubmit = async (expenseData: ExpenseType) => {
+        setIsLoading(true);
+        try {
+            if (editingExpense) {
+                const updated = await updateExpense({ ...expenseData, id: editingExpense.id });
+                setExpenses(prev =>
+                    prev.map(e => e.id === editingExpense.id ? {
+                        ...e,
+                        ...mapWordPressExpenseToApp(updated) // map WP response back to ExpenseType
+                    } : e)
+                );
+            } else {
+                // Add new expense to WordPress
+                const createdExpense = await addExpense({
+                    date: expenseData.date,
+                    category: expenseData.category,
+                    description: expenseData.description,
+                    amount: expenseData.amount,
+                    vendor: expenseData.vendor,
+                    payment_method: expenseData.payment_method,
+                    receipt_number: expenseData.receipt_number,
+                    notes: expenseData.notes,
+                });
+
+                // Map WordPress object to ExpenseType
+                const mappedExpense = mapWordPressExpenseToApp(createdExpense);
+
+                // Update local state
+                setExpenses(prev => [mappedExpense, ...prev]);
+            }
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to add expense");
+        } finally {
+            setShowForm(false);
+            setEditingExpense(null);
+            setIsLoading(false);
+        }
     };
 
     const handleEdit = (expense: ExpenseType) => {
@@ -91,6 +157,31 @@ export default function Expenses() {
 
     const handleExport = () => {
         Alert.alert("Export CSV", "CSV export is not implemented on mobile yet.");
+    };
+
+    const handleDelete = async (expenseId: string) => {
+        Alert.alert(
+            "Delete Expense",
+            "Are you sure you want to delete this expense?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setIsLoading(true);
+                            await deleteExpense(expenseId);
+                            setExpenses(prev => prev.filter(e => e.id !== expenseId));
+                            setIsLoading(false);
+                        } catch (err: any) {
+                            setIsLoading(false);
+                            Alert.alert("Error", err.message || "Failed to delete expense");
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     return (
@@ -134,8 +225,6 @@ export default function Expenses() {
             {/* Filters */}
             <View className="flex flex-col bg-white">
                 <View className="p-4 bg-white">
-                    {/* Fixed: Added isLoading prop to ExpenseSummary */}
-                    <ExpenseSummary expenses={filteredExpenses} isLoading={isLoading} />
                     <TouchableOpacity
                         onPress={() => setShowForm(!showForm)}
                         className="mt-3 flex-row justify-center gap-3 items-center px-4 py-2 rounded-xl bg-primary-500 mb-6"
@@ -143,11 +232,14 @@ export default function Expenses() {
                         <Plus size={20} color="white" />
                         <Text className="font-rubik-medium text-white">Add New Expense</Text>
                     </TouchableOpacity>
-                    <ExpenseFilters
-                        onFilterChange={setFilters}
-                        currentFilters={filters}
-                        categories={["all", ...ExpenseSchema.properties.category.enum]}
-                    />
+                    <ExpenseSummary expenses={filteredExpenses} isLoading={isLoading} />
+                    <View className="mt-5">
+                        <ExpenseFilters
+                            onFilterChange={setFilters}
+                            currentFilters={filters}
+                            categories={["all", ...ExpenseSchema.properties.category.enum]}
+                        />
+                    </View>
                 </View>
 
             </View>
@@ -164,9 +256,17 @@ export default function Expenses() {
                         data={filteredExpenses}
                         keyExtractor={(item) => String(item.id)}
                         renderItem={({ item }) => (
-                            <ExpenseList expenses={[item]} onEdit={handleEdit} isLoading={false} />
+                            <ExpenseList
+                                expenses={[item]}
+                                onEdit={handleEdit}
+                                isLoading={false}
+                                onDelete={() => {
+                                    if (item.id) {
+                                        handleDelete?.(item?.id)
+                                    }
+                                }} />
                         )}
-                        contentContainerStyle={{ paddingBottom: 0 }}
+                        contentContainerStyle={{ paddingBottom: 80 }}
                     />
                 )}
             </View>

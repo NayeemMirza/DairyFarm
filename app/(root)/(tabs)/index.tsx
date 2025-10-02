@@ -6,7 +6,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -18,18 +18,24 @@ import NoResults from "@/components/NoResults";
 import { Card, FeaturedCard } from "@/components/Cards";
 
 import { useGlobalContext } from "@/lib/global-provider";
-import { getLatestAnimals, getAnimals } from "@/lib/appwrite";
+import {getLatestAnimals, getAnimals, getUserStats} from "@/lib/appwrite";
 import { useApi } from "@/lib/useApi";
-import {HelloIcon} from "@/assets/svg-icons/SVGIcons";
+import { HelloIcon } from "@/assets/svg-icons/SVGIcons";
 import StatsOverview from "@/components/dashboard/StatsOverview";
 import MilkProductionChart from "@/components/dashboard/MilkProductionChart";
 
-
+interface Stats {
+    totalAnimals: number;
+    lactatingAnimals: number;
+    totalMilkThisMonth: number;
+    totalExpensesThisMonth: number;
+}
 
 const Home = () => {
     const { user } = useGlobalContext();
     const params = useLocalSearchParams<{ query?: string; filter?: string }>();
 
+    // animals
     const { data: latestAnimals, loading: latestAnimalsLoading } = useApi({
         fn: getLatestAnimals,
     });
@@ -50,18 +56,35 @@ const Home = () => {
             query: params.query || undefined,
             limit: 6,
         }).catch((err) => console.error(err));
-
     }, [params.filter, params.query]);
 
     const handleCardPress = (id: string) => router.push(`/animal/${id}`);
 
-    const yourStats = {
-        totalAnimals: 100,
-        lactatingAnimals: 40,
-        totalMilkThisMonth: 1200,
-        totalExpensesThisMonth: 5000,
-    };
+    // 📊 User Stats
+    const [stats, setStats] = useState<Stats>({
+        totalAnimals: 0,
+        lactatingAnimals: 0,
+        totalMilkThisMonth: 0,
+        totalExpensesThisMonth: 0,
+    });
+    const [statsLoading, setStatsLoading] = useState(true);
 
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                setStatsLoading(true);
+                const data = await getUserStats();
+                setStats(data);
+            } catch (err) {
+                console.error("Failed to load stats:", err);
+            } finally {
+                setStatsLoading(false);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    // 🥛 Milk chart (for now still using sample data — later can use real milking records)
     const sampleMilkRecords = [
         { date: "2025-09-01", total_yield: 120 },
         { date: "2025-09-02", total_yield: 150 },
@@ -105,7 +128,7 @@ const Home = () => {
                                 />
                                 <View className="ml-2">
                                     <View className="flex items-center flex-row gap-2">
-                                        <HelloIcon width ={25} height={28} />
+                                        <HelloIcon width={25} height={28} />
                                         <View>
                                             <Text className="text-base font-rubik-medium text-white">
                                                 Hi {user?.name}
@@ -126,21 +149,31 @@ const Home = () => {
                                 <Search />
                             </View>
                         </View>
+
+                        {/* ✅ Live Stats */}
                         <View className="my-5 px-5">
-                            <StatsOverview stats={yourStats} isLoading={false} />
+                            {statsLoading ? (
+                                <ActivityIndicator
+                                    size="large"
+                                    className="text-primary-300 mt-5"
+                                />
+                            ) : (
+                                <StatsOverview stats={stats} isLoading={false} />
+                            )}
                         </View>
 
+                        {/* Milk Chart */}
                         <View className="my-5 px-5">
                             <MilkProductionChart milkRecords={sampleMilkRecords} isLoading={false} />
                         </View>
+
+                        {/* New Animals */}
                         <View className="my-5 px-5">
                             <View className="flex flex-row items-center justify-between">
                                 <Text className="text-xl font-rubik-bold text-black-300">
                                     New Animals
                                 </Text>
-                                <TouchableOpacity
-                                onPress={() => router.push("/animals")}
-                                >
+                                <TouchableOpacity onPress={() => router.push("/animals")}>
                                     <Text className="text-base font-rubik-bold text-primary-300">
                                         See all
                                     </Text>
@@ -160,9 +193,7 @@ const Home = () => {
                                     renderItem={({ item }) => (
                                         <FeaturedCard
                                             item={item}
-                                            onPress={() =>
-                                                handleCardPress(item.id.toString())
-                                            }
+                                            onPress={() => handleCardPress(item.id.toString())}
                                         />
                                     )}
                                     keyExtractor={(item, index) =>
@@ -175,6 +206,7 @@ const Home = () => {
                             )}
                         </View>
 
+                        {/* Recommendation Section */}
                         <View className="mt-5 px-5">
                             <View className="flex flex-row items-center justify-between">
                                 <Text className="text-xl font-rubik-bold text-black-300">
@@ -186,7 +218,6 @@ const Home = () => {
                                     </Text>
                                 </TouchableOpacity>
                             </View>
-
                             <Filters />
                         </View>
                     </View>

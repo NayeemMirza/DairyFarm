@@ -21,6 +21,8 @@ const SignIn  = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const { refetch, loading, isLogged } = useGlobalContext();
+    const [showPassword, setShowPassword] = useState(false);
+
 
     if (!loading && isLogged) return <Redirect href="/" />;
 
@@ -45,13 +47,13 @@ const SignIn  = () => {
                 />
 
                 <View className="px-10 relative -mt-44">
-                    <Text className="text-base text-center uppercase font-rubik text-black-900">
+                    <Text className="text-xl text-center uppercase font-rubik text-black-900">
                         Welcome To Dairy Management
                     </Text>
 
                     <Text className="text-3xl font-rubik-bold text-black-800 text-center mt-2">
                         Let's Get You Closer To {"\n"}
-                        <Text className="text-primary-300">Your Ideal Dairy Farm</Text>
+                        <Text className="text-primary-500">Your Ideal Dairy Farm</Text>
                     </Text>
                 </View>
 
@@ -77,10 +79,10 @@ const SignIn  = () => {
                             </Text>
 
                             <View className="mb-5">
-                                <Text className="text-base text-black-600 pb-2">User Name</Text>
+                                <Text className="text-base text-black-600 pb-2">Email Address</Text>
                                 <TextInput
-                                    className="w-full py-3 px-4 rounded-lg border border-primary-100 text-sm font-rubik text-black-300"
-                                    placeholder="Enter your username"
+                                    className="w-full py-3 px-4 rounded-lg border border-primary-100 text-base font-rubik text-black-700"
+                                    placeholder="Enter your email"
                                     value={username}
                                     onChangeText={setUsername}
                                     returnKeyType="next"
@@ -89,14 +91,24 @@ const SignIn  = () => {
 
                             <View className="mb-5">
                                 <Text className="text-base text-black-600 pb-2">Password</Text>
-                                <TextInput
-                                    className="w-full py-3 px-4 rounded-lg border border-primary-100 text-sm font-rubik text-black-300"
-                                    placeholder="Enter your password"
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry
-                                    returnKeyType="done"
-                                />
+                                <View className="relative">
+                                    <TextInput
+                                        className="w-full py-3 px-4 rounded-lg border border-primary-100 text-base font-rubik text-black-700 pr-12"
+                                        placeholder="Enter your password"
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry={!showPassword}
+                                        returnKeyType="done"
+                                    />
+                                    <TouchableOpacity
+                                        onPress={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-3"
+                                    >
+                                        <Text className="text-primary-500 font-rubik-medium">
+                                            {showPassword ? "Hide" : "Show"}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             <TouchableOpacity

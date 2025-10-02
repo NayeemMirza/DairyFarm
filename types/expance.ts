@@ -33,3 +33,14 @@ export const ExpenseSchema = {
     },
     required: ["date","category","description","amount"],
 };
+
+export interface CreateExpensePayload {
+    date: string; // "YYYY-MM-DD" format
+    category: "Feed" | "Medicine" | "Equipment" | "Labor" | "Utilities" | "Maintenance" | "Transport" | "Other";
+    description: string;
+    amount: number;
+    vendor?: string;
+    payment_method?: string;
+    receipt_number?: string;
+    notes?: string;
+}
